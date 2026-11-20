@@ -1,11 +1,31 @@
-// A working news-image-daily entry (Node 22, standard library only): its image is the entry.png beside this file, and
-// the program copies it to /output/entry.png. A starting point, not a winner: replace the image. The gate takes a
-// whole PNG or JPEG of at most 1 MiB and 1024 by 1024 pixels, and the judge sees exactly the bytes copied.
+// main.ts — copy entry.png to the output directory and verify the copy.
 //
-// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// Usage: node main.ts
+// Output directory: MAKEFUN_OUTPUT_DIR, or /output when that is not set.
+// Only the Node standard library is used.
 
-import { copyFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
-copyFileSync(new URL('./entry.png', import.meta.url), join(process.env.MAKEFUN_OUTPUT_DIR ?? '/output', 'entry.png'));
+const repoDir = new URL(".", import.meta.url).pathname;
+const source = join(repoDir, "entry.png");
+
+if (!existsSync(source)) {
+  console.error(`entry.png not found at ${source}`);
+  process.exit(1);
+}
+
+const outDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
+mkdirSync(outDir, { recursive: true });
+const dest = join(outDir, "entry.png");
+
+copyFileSync(source, dest);
+
+const original = readFileSync(source);
+const copied = readFileSync(dest);
+if (!original.equals(copied)) {
+  console.error("entry.png copy differs from the original; refusing to continue");
+  process.exit(1);
+}
+
+console.log(`copied entry.png to ${dest} (${copied.length} bytes, byte-identical)`);
